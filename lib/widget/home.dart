@@ -1,7 +1,8 @@
 
 import 'dart:convert';
-
-
+import 'dart:io';
+import 'package:confirm_dialog/confirm_dialog.dart';
+import 'package:provider/provider.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
@@ -41,53 +42,54 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           centerTitle: true,
         ),
-        body: ListView.builder(
-          itemCount: users.length,
-          itemBuilder: (context,index){
-            final user = users[index];
-            final email = user.email;
-            final imageUrl = user.image;
-            final name = user.name;
-            final id = user.id;
-            return GestureDetector(
-              onTap: () {
-                Navigator.push(context, MaterialPageRoute(builder: (_) => DetailScreen(id:id,fetchUsers: fetchUsers())));
-              },
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 15, horizontal:20),
-                child: Container(
-                  height: 80,
-                  width: double.infinity,
-                  // margin: const EdgeInsets.only(bottom: 10),
-                  decoration:  BoxDecoration(
-                    color: const Color(0xfffdf2f9),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.grey.withOpacity(0.5),
-                        spreadRadius: 5,
-                        blurRadius: 7,
-                        offset: Offset(0, 3), // changes position of shadow
-                      ),
-                    ],
-                    borderRadius: const BorderRadius.only(
-                        topLeft: Radius.circular(10),
-                        topRight: Radius.circular(10),
-                        bottomLeft: Radius.circular(10),
-                        bottomRight: Radius.circular(10)
-                    ),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(10.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(100),
-                          child: Image.network(imageUrl),
+        body: RefreshIndicator(
+          onRefresh: fetchUsers,
+          child: ListView.builder(
+            itemCount: users.length,
+            itemBuilder: (context,index){
+              final user = users[index];
+              final email = user.email;
+              final imageUrl = user.image;
+              final name = user.name;
+              final id = user.id;
+              return GestureDetector(
+                onTap: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => DetailScreen(id:id,fetchUsers: fetchUsers())));
+                },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 15, horizontal:20),
+                  child: Container(
+                    height: 80,
+                    width: double.infinity,
+                    // margin: const EdgeInsets.only(bottom: 10),
+                    decoration:  BoxDecoration(
+                      color: const Color(0xfffdf2f9),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.grey.withOpacity(0.5),
+                          spreadRadius: 5,
+                          blurRadius: 7,
+                          offset: Offset(0, 3), // changes position of shadow
                         ),
-                        const SizedBox(width: 10),
-                        Expanded(
+                      ],
+                      borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(10),
+                          topRight: Radius.circular(10),
+                          bottomLeft: Radius.circular(10),
+                          bottomRight: Radius.circular(10)
+                      ),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(10.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(100),
+                            child: Image.network(imageUrl),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -111,21 +113,30 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ),
                               ],
                             )
-                        ),
-                        const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.edit),
-                            Icon(Icons.delete),
-                          ],
-                        )
-                      ],
+                          ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.edit),
+                              InkWell(
+                                onTap: () async {
+                                  if (await confirm(context)) {
+                                    deleteUser(id);
+                                  }
+                                  return;
+                                },
+                                child: Icon(Icons.delete)
+                              ),
+                            ],
+                          )
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-            );
-          }
+              );
+            }
+          ),
         ),
 
         floatingActionButton: FloatingActionButton(
@@ -154,7 +165,15 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       users = response;
     });
+  }
 
+  Future<void> deleteUser(id) async {
+    final response  = await UserApi.deleteUser(id);
+    if(response.toString() == '200') {
+      fetchUsers();
+      NontifiCation.showSuccessNotification(context, 'Xóa người dùng thành công');
+
+    }
   }
 }
 
@@ -162,7 +181,6 @@ class DetailScreen extends StatefulWidget {
   const DetailScreen( {super.key, required this.id, required this.fetchUsers});
 
   final Future<void> fetchUsers;
-
 
   final String id;
 
@@ -172,13 +190,17 @@ class DetailScreen extends StatefulWidget {
 
 class _DetailScreenState extends State<DetailScreen> {
 
+
   Map<String,dynamic> user = {};
   XFile ? selectImage;
-
+  bool isSubmit = false;
   String name = '';
+  String password = '';
+
+  bool error = false;
 
   final nameController = TextEditingController();
-  final passwordController = TextEditingController();
+  final passwordController = TextEditingController(text: '');
 
   @override
   void initState() {
@@ -197,25 +219,33 @@ class _DetailScreenState extends State<DetailScreen> {
     setState(() {
       user = converse['metadata'];
       name = user['name'];
+      password = user['password'];
     });
 
   }
 
-  void _handleOnSubmit (name,password)  async {
-    if(name.isEmpty ) {
-      return;
+  void _handleOnSubmit (newName,password)  async {
+    late String result ;
+
+    if(newName.isEmpty) {
+      newName = name;
     }
-    final response  = await UserApi.updateUser(widget.id ,name,password);
+    if(selectImage!=null) {
+      isSubmit = false;
+      result = await UserApi.uploadImage(widget.id, selectImage);
+    }
+    final response  = await UserApi.updateUser(widget.id ,newName,password);
     final Map<String,dynamic> converse = {};
     response.forEach((key, value) {
       converse[key.toString()] = value;
     });
+
     widget.fetchUsers;
-    if(converse['metadata']['modifiedCount'] ==1 && converse['status'] == 200) {
+    if(converse['metadata']['modifiedCount'] ==1 && converse['status'] == 200 || result == '200') {
 
-      NontifiCation.showSuccessNotification(context);
+      NontifiCation.showSuccessNotification(context, 'Cập nhật thành công');
+      isSubmit = false;
     }
-
   }
 
   Future<void> showUserNameDialogAlert(BuildContext context) {
@@ -224,14 +254,14 @@ class _DetailScreenState extends State<DetailScreen> {
 
     void _handleOnClick (BuildContext context) async {
 
-      if(name.isEmpty) {
+      if(nameController.value.text.toString().isEmpty) {
+        NontifiCation.showErrorNotification(context, 'Tên không được bỏ trống');
         return;
       }
-
       setState(() {
         name = nameController.value.text.toString();
+        isSubmit = true;
       });
-
       Navigator.pop(context);
 
     }
@@ -244,7 +274,50 @@ class _DetailScreenState extends State<DetailScreen> {
             children: [
               TextField(
                 controller: nameController,
+              )
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () {
+            Navigator.pop(context);
+          }, child: const Text('Hủy')),
+          TextButton(onPressed: ()  => _handleOnClick(context), child: const Text('Cập nhật'))
+        ],
+      );
+    });
+  }
 
+  Future<void> showUserPasswordDialogAlert(BuildContext context) {
+
+    // passwordController.text = password;
+
+    void _handleOnClick (BuildContext context) async {
+
+      if(passwordController.value.text.toString().isEmpty) {
+        NontifiCation.showErrorNotification(context, 'Mật khẩu không được bỏ trống');
+        return;
+      }
+
+      setState(() {
+        password = passwordController.value.text.toString();
+        isSubmit = true;
+      });
+      Navigator.pop(context);
+
+    }
+
+    return showDialog(context: context, builder: (context) {
+      return AlertDialog(
+        title: const Text('Mật khẩu mới'),
+        content: SingleChildScrollView(
+          child: Column(
+            children: [
+              TextField(
+                controller: passwordController,
+                obscureText: true,
+                enableSuggestions: false,
+                autocorrect: false,
               )
             ],
           ),
@@ -260,13 +333,15 @@ class _DetailScreenState extends State<DetailScreen> {
   }
 
   Future _pickImageFromGallery () async {
+
     final XFile? returnedImage = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 100);
     if(returnedImage == null) return;
     setState(() {
       selectImage = XFile(returnedImage.path);
+      isSubmit = true;
     });
-  }
 
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -284,6 +359,7 @@ class _DetailScreenState extends State<DetailScreen> {
             style: TextStyle(fontSize: 30),
           ),
           centerTitle: true,
+
         ),
 
         body:  Padding(
@@ -306,8 +382,7 @@ class _DetailScreenState extends State<DetailScreen> {
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(100),
-                      child:
-                      imageUrl.toString() == "" ? const Icon(Icons.person_2_outlined) : Image.network(
+                      child:selectImage?.path == null ? imageUrl.toString() == "" ? const Icon(Icons.person_2_outlined) : Image.network(
                         imageUrl,
                         loadingBuilder: (context,child,loadingProgess) {
                           if(loadingProgess==null) return child;
@@ -319,6 +394,7 @@ class _DetailScreenState extends State<DetailScreen> {
                           );
                         },
                       )
+                          : Image.file(File(selectImage!.path).absolute)
                     ),
                   ),
                 ),
@@ -338,7 +414,7 @@ class _DetailScreenState extends State<DetailScreen> {
 
               GestureDetector(
                   onTap: (){
-                    showUserNameDialogAlert(context);
+                    showUserPasswordDialogAlert(context);
                   },
                   child: ReusbableRow(
                     title: 'Mật khẩu',
@@ -351,9 +427,17 @@ class _DetailScreenState extends State<DetailScreen> {
               ReusbableRow(title: 'Email', value: email, iconData: Icons.email),
               const SizedBox(height: 40),
               ElevatedButton(
-                  onPressed:() => _handleOnSubmit(nameController.value.text.toString() , passwordController.value.text.toString() ),
-                  child: const Text ('Cập nhật người dùng'))
-
+                  style: ButtonStyle(
+                    backgroundColor: MaterialStateProperty.all<Color>(
+                      isSubmit == false ? Colors.white10 : Colors.blue,
+                    ),
+                    foregroundColor: MaterialStateProperty.all<Color>(Colors.white), // Text color
+                  ),
+                onPressed:() => isSubmit == false ? null : _handleOnSubmit(
+                    nameController.value.text.toString(),
+                    passwordController.value.text.toString() ),
+                child: const Text ('Cập nhật thông tin')
+              )
             ],
           ),
         ),
@@ -383,7 +467,7 @@ class ReusbableRow extends StatelessWidget {
               maxWidth: 200, // Set a maximum width for the trailing widget
             ),
             child: Text(
-              value,
+              title=='Mật khẩu' ? '******': value,
               style: const TextStyle(fontSize: 16),
               overflow: TextOverflow.ellipsis,
             ),

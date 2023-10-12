@@ -16,6 +16,7 @@ class ModalBottom extends StatelessWidget {
   
   void _handleOnClick (BuildContext context) async {
     if(name.isEmpty || email.isEmpty || password.isEmpty) {
+
       return;
     }
     final status = await UserApi.createUser(name,email,password);
@@ -24,8 +25,6 @@ class ModalBottom extends StatelessWidget {
       fetchUsers;
       Navigator.pop(context);
     }
-
-
   }
 
   @override
