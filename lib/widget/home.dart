@@ -337,7 +337,7 @@ class _DetailScreenState extends State<DetailScreen> {
     final XFile? returnedImage = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 100);
     if(returnedImage == null) return;
     setState(() {
-      selectImage = XFile(returnedImage.path);
+      selectImage = XFile(returnedImage!.path);
       isSubmit = true;
     });
 

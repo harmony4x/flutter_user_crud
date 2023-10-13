@@ -41,6 +41,9 @@ dependencies:
   image_picker: ^1.0.0
   confirm_dialog: ^1.0.2
   flutter_web_frame: ^1.0.0
+  universal_io: ^2.0.4
+  email_validator: ^2.0.1
+
 
 
 

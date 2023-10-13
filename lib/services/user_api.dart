@@ -5,12 +5,16 @@ import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:user_crud/model/user.dart';
 
+import '../configs/api_config.dart';
+
 class UserApi {
-  static const _url = 'http://10.0.2.2:3056/user/';
+  static final _url = ApiConfig.apiBaseUrl;
+
 
   static Future<List<User>> fetchUsers () async {
-    const url = _url;
-    final uri = Uri.parse(url);
+
+    final url = _url;
+    final uri = Uri.parse(url+'user');
     final response = await http.get(uri);
     final body = response.body;
     final json = jsonDecode(body);
@@ -33,8 +37,8 @@ class UserApi {
       'email': email,
       'password': password
     };
-    const url = _url;
-    final uri = Uri.parse(url);
+    final url = _url;
+    final uri = Uri.parse(url+'user');
     final response = await http.post(
       uri,
       body: jsonEncode(request),
@@ -51,8 +55,8 @@ class UserApi {
   }
 
   static Future<Map> detailUser (id) async {
-    const url = _url;
-    final uri = Uri.parse(url+id);
+    final url = _url;
+    final uri = Uri.parse(url+'user/'+id);
     final response = await http.get(uri);
 
     Map<String,dynamic> result = jsonDecode(response.body);
@@ -67,8 +71,8 @@ class UserApi {
       'name': name,
       'password': password
     };
-    const url = _url;
-    final uri = Uri.parse(url);
+    final url = _url;
+    final uri = Uri.parse(url+'user');
 
     final response = await http.patch(
       uri,
@@ -84,8 +88,8 @@ class UserApi {
   }
 
   static Future<String> uploadImage (id, imageFile) async {
-    const url = 'http://10.0.2.2:3056/upload-image';
-    final uri = Uri.parse(url);
+    final url = _url;
+    final uri = Uri.parse(url+'upload-image');
     var request = http.MultipartRequest('POST',uri);
     request.fields['_id'] = id.toString();
     request.files.add(await http.MultipartFile.fromPath('image', imageFile.path));
@@ -100,8 +104,8 @@ class UserApi {
     final request = {
       '_id': id,
     };
-    const url = _url;
-    final uri = Uri.parse(url);
+    final url = _url;
+    final uri = Uri.parse(url+'user');
     final response = await http.delete(
         uri,
         body: jsonEncode(request),

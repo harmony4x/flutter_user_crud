@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:user_crud/services/user_api.dart';
+import 'package:user_crud/utils/showNontification.dart';
+import 'package:user_crud/utils/validation.dart';
 
 class ModalBottom extends StatelessWidget {
   ModalBottom( {
@@ -16,7 +18,10 @@ class ModalBottom extends StatelessWidget {
   
   void _handleOnClick (BuildContext context) async {
     if(name.isEmpty || email.isEmpty || password.isEmpty) {
-
+      NontifiCation.showErrorNotification(context, 'Dữ liệu không được bỏ trống');
+      return;
+    }else if (!validatorEmail(email)) {
+      NontifiCation.showErrorNotification(context, 'Sai định dạng email');
       return;
     }
     final status = await UserApi.createUser(name,email,password);
