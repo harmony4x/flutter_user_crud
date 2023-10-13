@@ -1,7 +1,10 @@
 
 import 'dart:convert';
+
 import 'dart:io';
 import 'package:confirm_dialog/confirm_dialog.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -193,6 +196,8 @@ class _DetailScreenState extends State<DetailScreen> {
 
   Map<String,dynamic> user = {};
   XFile ? selectImage;
+  Uint8List webImage = Uint8List(0);
+  Uint8List ? imagePath;
   bool isSubmit = false;
   String name = '';
   String password = '';
@@ -226,6 +231,7 @@ class _DetailScreenState extends State<DetailScreen> {
 
   void _handleOnSubmit (newName,password)  async {
     late String result ;
+    late Map webResult;
 
     if(newName.isEmpty) {
       newName = name;
@@ -233,6 +239,14 @@ class _DetailScreenState extends State<DetailScreen> {
     if(selectImage!=null) {
       isSubmit = false;
       result = await UserApi.uploadImage(widget.id, selectImage);
+    }
+    if(webImage.isNotEmpty) {
+      isSubmit = false;
+      webResult = await UserApi.uploadImageInWeb(widget.id, imagePath);
+      if(webResult['status']=='error') {
+        String message = webResult['message'];
+        NontifiCation.showErrorNotification(context, message);
+      }
     }
     final response  = await UserApi.updateUser(widget.id ,newName,password);
     final Map<String,dynamic> converse = {};
@@ -334,12 +348,29 @@ class _DetailScreenState extends State<DetailScreen> {
 
   Future _pickImageFromGallery () async {
 
-    final XFile? returnedImage = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 100);
-    if(returnedImage == null) return;
-    setState(() {
-      selectImage = XFile(returnedImage!.path);
-      isSubmit = true;
-    });
+    if(!kIsWeb) {
+      final XFile? returnedImage = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 100);
+      if(returnedImage == null) return;
+      setState(() {
+        selectImage = XFile(returnedImage!.path);
+        isSubmit = true;
+      });
+    } else if (kIsWeb) {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.image,
+        allowMultiple: false, // Set to true if you want to allow selecting multiple files.
+      );
+
+      if (result == null || result.files.isEmpty) return;
+
+      var f = await result.files.single.bytes;
+
+      setState(() {
+        webImage = f!;
+        imagePath = result.files.single.bytes;
+        isSubmit = true;
+      });
+    }
 
   }
 
@@ -382,19 +413,36 @@ class _DetailScreenState extends State<DetailScreen> {
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(100),
-                      child:selectImage?.path == null ? imageUrl.toString() == "" ? const Icon(Icons.person_2_outlined) : Image.network(
-                        imageUrl,
-                        loadingBuilder: (context,child,loadingProgess) {
-                          if(loadingProgess==null) return child;
-                          return const Center(child: CircularProgressIndicator(),);
-                        },
-                        errorBuilder: (context,object,stack) {
-                          return Container(
-                            child: const Icon(Icons.error_outline,),
-                          );
-                        },
-                      )
-                          : Image.file(File(selectImage!.path).absolute)
+                      child:
+                      !kIsWeb ?
+                        selectImage?.path == null ?
+                          imageUrl.toString() == "" ? const Icon(Icons.person_2_outlined) : Image.network(
+                          imageUrl,
+                          loadingBuilder: (context,child,loadingProgess) {
+                            if(loadingProgess==null) return child;
+                            return const Center(child: CircularProgressIndicator(),);
+                          },
+                          errorBuilder: (context,object,stack) {
+                            return Container(
+                              child: const Icon(Icons.error_outline,),
+                            );
+                          },
+                          )
+                        : Image.file(File(selectImage!.path).absolute)
+                      :webImage.isEmpty ?
+                        Image.network(
+                          imageUrl,
+                          loadingBuilder: (context,child,loadingProgess) {
+                            if(loadingProgess==null) return child;
+                            return const Center(child: CircularProgressIndicator(),);
+                          },
+                          errorBuilder: (context,object,stack) {
+                            return Container(
+                              child: const Icon(Icons.error_outline,),
+                            );
+                          },
+                        ):Image.memory(webImage,fit: BoxFit.fill,)
+
                     ),
                   ),
                 ),

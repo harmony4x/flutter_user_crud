@@ -89,7 +89,8 @@ class UserApi {
 
   static Future<String> uploadImage (id, imageFile) async {
     final url = _url;
-    final uri = Uri.parse(url+'upload-image');
+    final uri = Uri.parse('${url}upload-image');
+    print('$uri url o day ne');
     var request = http.MultipartRequest('POST',uri);
     request.fields['_id'] = id.toString();
     request.files.add(await http.MultipartFile.fromPath('image', imageFile.path));
@@ -98,6 +99,27 @@ class UserApi {
 
 
     return response.statusCode.toString();
+  }
+
+  static Future<Map> uploadImageInWeb (id, imageBytes) async {
+    String base64Image = base64Encode(imageBytes);
+
+    final request = {
+      '_id': id,
+      'image': base64Image,
+    };
+    final url = _url;
+    final uri = Uri.parse('${url}upload-image2');
+    final response = await http.post(
+        uri,
+        body: jsonEncode(request),
+        headers: {
+          "Content-Type": "application/json",
+        }
+    );
+    Map<String,dynamic> result = jsonDecode(response.body);
+
+    return result;
   }
 
   static Future<String> deleteUser (id) async {
