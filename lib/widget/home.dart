@@ -120,7 +120,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.edit),
+
                               InkWell(
                                 onTap: () async {
                                   if (await confirm(context)) {
@@ -243,22 +243,26 @@ class _DetailScreenState extends State<DetailScreen> {
     if(webImage.isNotEmpty) {
       isSubmit = false;
       webResult = await UserApi.uploadImageInWeb(widget.id, imagePath);
-      if(webResult['status']=='error') {
-        String message = webResult['message'];
+      print(webResult['status']);
+      if(webResult['status']=='error' && webResult['code']==509) {
+        error = true;
+        String message = 'Không thể tải file quá 100kb';
         NontifiCation.showErrorNotification(context, message);
       }
     }
-    final response  = await UserApi.updateUser(widget.id ,newName,password);
-    final Map<String,dynamic> converse = {};
-    response.forEach((key, value) {
-      converse[key.toString()] = value;
-    });
+    if(error == false) {
+      final response  = await UserApi.updateUser(widget.id ,newName,password);
+      final Map<String,dynamic> converse = {};
+      response.forEach((key, value) {
+        converse[key.toString()] = value;
+      });
 
-    widget.fetchUsers;
-    if(converse['metadata']['modifiedCount'] ==1 && converse['status'] == 200 || result == '200') {
+      widget.fetchUsers;
+      if(converse['metadata']['modifiedCount'] ==1 && converse['status'] == 200 || result == '200') {
 
-      NontifiCation.showSuccessNotification(context, 'Cập nhật thành công');
-      isSubmit = false;
+        NontifiCation.showSuccessNotification(context, 'Cập nhật thành công');
+        isSubmit = false;
+      }
     }
   }
 

@@ -50,6 +50,7 @@ class UserApi {
     // final<Map> result = response.body;
     // List<User> users = [];
     Map<String,dynamic> result = jsonDecode(response.body);
+
     String status = result['status'].toString();
     return status;
   }
@@ -118,6 +119,7 @@ class UserApi {
         }
     );
     Map<String,dynamic> result = jsonDecode(response.body);
+
 
     return result;
   }

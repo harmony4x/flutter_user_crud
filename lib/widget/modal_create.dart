@@ -15,6 +15,8 @@ class ModalBottom extends StatelessWidget {
   String name = '';
   String email = '';
   String password = '';
+
+  bool isError = false;
   
   void _handleOnClick (BuildContext context) async {
     if(name.isEmpty || email.isEmpty || password.isEmpty) {
@@ -24,11 +26,17 @@ class ModalBottom extends StatelessWidget {
       NontifiCation.showErrorNotification(context, 'Sai định dạng email');
       return;
     }
+
     final status = await UserApi.createUser(name,email,password);
 
     if(status == '200') {
       fetchUsers;
       Navigator.pop(context);
+      NontifiCation.showSuccessNotification(context, 'Tạo mới người dùng thành công');
+
+    }else if(status == 'error') {
+      NontifiCation.showErrorNotification(context, 'Email đã được sử dụng');
+
     }
   }
 
