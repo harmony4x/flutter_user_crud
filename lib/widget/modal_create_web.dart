@@ -1,21 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:user_crud/controllers/user_controller.dart';
 import 'package:user_crud/services/user_api.dart';
 import 'package:user_crud/utils/showNontification.dart';
 import 'package:user_crud/utils/validation.dart';
-import 'package:get/get.dart';
-
-import '../controllers/network_controller.dart';
 
 class ModalBottom extends StatelessWidget {
   ModalBottom( {
     super.key, required this.fetchUsers
 
   });
-
-  final NetworkController networkController = Get.find();
-  late bool isConnect;
-
 
 
   final Future<void> fetchUsers;
@@ -26,10 +18,7 @@ class ModalBottom extends StatelessWidget {
 
   bool isError = false;
 
-
   void _handleOnClick (BuildContext context) async {
-    late String status;
-    isConnect = networkController.isOnline.value;
     if(name.isEmpty || email.isEmpty || password.isEmpty) {
       NontifiCation.showErrorNotification(context, 'Dữ liệu không được bỏ trống');
       return;
@@ -37,13 +26,9 @@ class ModalBottom extends StatelessWidget {
       NontifiCation.showErrorNotification(context, 'Sai định dạng email');
       return;
     }
-    if(isConnect) {
-      status = await UserApi.createUser(name,email,password);
 
-    }else {
-      status = await UserController.insertUser(name,email,password);
+    final status = await UserApi.createUser(name,email,password);
 
-    }
     if(status == '200') {
       fetchUsers;
       Navigator.pop(context);
@@ -76,9 +61,9 @@ class ModalBottom extends StatelessWidget {
               ),
               const SizedBox(height: 10),
               TextField(
-                 onChanged: (text) {
-                   email = text;
-                 },
+                onChanged: (text) {
+                  email = text;
+                },
                 decoration: const InputDecoration(
                     border: OutlineInputBorder(),
                     labelText: 'Email'

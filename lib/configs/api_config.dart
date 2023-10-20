@@ -1,3 +1,4 @@
+import 'package:get/get.dart';
 import 'package:universal_io/io.dart';
 
 class ApiConfig {

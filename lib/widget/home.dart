@@ -12,9 +12,10 @@ import 'package:image_picker/image_picker.dart';
 import 'package:user_crud/model/user.dart';
 import 'package:user_crud/services/user_api.dart';
 import 'package:user_crud/utils/showNontification.dart';
-import 'package:user_crud/widget/modal_create.dart';
+// import 'package:user_crud/widget/modal_create.dart';
+import 'package:user_crud/widget/modal_create_web.dart'
+if (dart.library.io) 'package:user_crud/widget/modal_create.dart';
 
-import 'card_body.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -226,7 +227,6 @@ class _DetailScreenState extends State<DetailScreen> {
       name = user['name'];
       password = user['password'];
     });
-
   }
 
   void _handleOnSubmit (newName,password)  async {
@@ -380,11 +380,11 @@ class _DetailScreenState extends State<DetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final imageUrl = user?['image'] ?? '';
-    final name = user?['name'] ?? '';
-    final email = user?['email'] ?? '';
-    final id = user?['_id'] ?? '';
-    final password = user?['password'] ?? '';
+    final imageUrl = user['image'] ?? '';
+    final name = user['name'] ?? '';
+    final email = user['email'] ?? '';
+    final id = user['_id'] ?? '';
+    final password = user['password'] ?? '';
     return SafeArea(
       child: Scaffold(
         resizeToAvoidBottomInset: false,
